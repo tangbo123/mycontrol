@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: mycontrol
+  name: mycontrol
+  namespace: tb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mycontrol
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: mycontrol
+    spec:
+      serviceAccountName: sa-mycontro
+      containers:
+      - image: ziyifeng/mycontrol:v1
+        name: mycontrol
+        resources: {}
+status: {}

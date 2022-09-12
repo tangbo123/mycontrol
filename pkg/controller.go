@@ -2,7 +2,6 @@ package pkg
 
 import (
 	"context"
-	"fmt"
 	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v14 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,12 +21,11 @@ import (
 )
 
 type controller struct {
-	client          kubernetes.Interface
-	stopch          <-chan struct{}
-	ingressLister   v1beta12.IngressLister
-	ingressInformer v1betai1.IngressInformer
-	serviceLister   v12.ServiceLister
-	queue           workqueue.RateLimitingInterface
+	client        kubernetes.Interface
+	stopch        <-chan struct{}
+	ingressLister v1beta12.IngressLister
+	serviceLister v12.ServiceLister
+	queue         workqueue.RateLimitingInterface
 }
 
 func (c *controller) enqueue(obj interface{}) {
@@ -82,13 +80,10 @@ func (c *controller) processNextItem() bool {
 }
 
 func (c *controller) syncService(key string) error {
-	time.Sleep(time.Second * 2)
 	namespaceKey, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		return err
 	}
-	q := cache.WaitForCacheSync(c.stopch, c.ingressInformer.Informer().HasSynced)
-	fmt.Println(q)
 
 	//service 不存在忽略
 	service, err := c.serviceLister.Services(namespaceKey).Get(name)
@@ -163,14 +158,12 @@ func (c *controller) deleteIngress(obj interface{}) {
 	ingress := obj.(*v1beta1.Ingress)
 	OwnerReference := v14.GetControllerOf(ingress)
 	if OwnerReference == nil || OwnerReference.Kind != "Service" {
-		//return
+		return
 	}
 
-	//if OwnerReference.Kind != "Service" {
-	//	//return
-	//}
-	a, _ := c.ingressLister.Ingresses(ingress.Namespace).Get(ingress.Name)
-	fmt.Println(a)
+	if OwnerReference.Kind != "Service" {
+		return
+	}
 
 	c.queue.Add(ingress.Namespace + "/" + ingress.Name)
 
@@ -189,12 +182,11 @@ func (c *controller) handleError(key string, err error) {
 func NewController(client kubernetes.Interface, serviceInformer v13.ServiceInformer, ingressInformer v1betai1.IngressInformer, stopch <-chan struct{}) controller {
 
 	c := controller{
-		client:          client,
-		stopch:          stopch,
-		ingressLister:   ingressInformer.Lister(),
-		ingressInformer: ingressInformer,
-		serviceLister:   serviceInformer.Lister(),
-		queue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ingressManger"),
+		client:        client,
+		stopch:        stopch,
+		ingressLister: ingressInformer.Lister(),
+		serviceLister: serviceInformer.Lister(),
+		queue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ingressManger"),
 	}
 	serviceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.addService,
